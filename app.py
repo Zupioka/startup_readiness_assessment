@@ -10,13 +10,6 @@ from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
-try:
-    import kaleido  # noqa: F401
-    KALEIDO_AVAILABLE = True
-except ImportError:
-    KALEIDO_AVAILABLE = False
-
-st.sidebar.write(f"KALEIDO_AVAILABLE = {KALEIDO_AVAILABLE}")
 
 st.set_page_config(page_title="Startup Readiness Assessment", layout="centered")
 st.markdown(
@@ -208,32 +201,26 @@ def build_pdf_report(fig, final_levels, rl_text) -> io.BytesIO:
 
     # --- Radar chart as image ---
     try:
-        if not KALEIDO_AVAILABLE:
-            raise RuntimeError("Kaleido is not available")
+    img_bytes = pio.to_image(
+        fig,
+        format="png",
+        width=600,
+        height=600,
+        scale=1,
+    )
+    img_buf = io.BytesIO(img_bytes)
 
-        img_bytes = pio.to_image(
-            fig,
-            format="png",
-            width=600,
-            height=600,
-            scale=1,
-        )
-        img_buf = io.BytesIO(img_bytes)
+    img = Image(img_buf)
+    max_width = 14 * cm
+    max_height = 14 * cm
+    img._restrictSize(max_width, max_height)
 
-        img = Image(img_buf)
-        max_width = 14 * cm
-        max_height = 14 * cm
-        img._restrictSize(max_width, max_height)
-
-        elems.append(img)
-        elems.append(Spacer(1, 0.7*cm))
-    except Exception as e:
-        # ⬇️ TEMP: show real error in UI for debugging
-        st.error(f"PDF chart export error: {repr(e)}")
-
-        elems.append(Paragraph("Radar chart could not be rendered in this PDF.", body_style))
-        elems.append(Spacer(1, 0.7*cm))
-
+    elems.append(img)
+    elems.append(Spacer(1, 0.7*cm))
+except Exception as e:
+    # if you want, you can now remove the st.error debug
+    elems.append(Paragraph("Radar chart could not be rendered in this PDF.", body_style))
+    elems.append(Spacer(1, 0.7*cm))
 
     # --- Per-dimension sections ---
     # keep same ordering logic as in UI
@@ -721,5 +708,6 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 
