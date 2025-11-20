@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
 import io
+import plotly.io as pio
 from utils.scoring import load_questions, compute_final_levels
 from utils.charts import radar_chart
 from functools import lru_cache
@@ -9,6 +10,11 @@ from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
+try:
+    import kaleido  # noqa: F401
+    KALEIDO_AVAILABLE = True
+except ImportError:
+    KALEIDO_AVAILABLE = False
 
 st.set_page_config(page_title="Startup Readiness Assessment", layout="centered")
 st.markdown(
@@ -200,24 +206,31 @@ def build_pdf_report(fig, final_levels, rl_text) -> io.BytesIO:
 
     # --- Radar chart as image ---
     try:
-        img_bytes = fig.to_image(format="png", width=600, height=600, scale=1)
+        if not KALEIDO_AVAILABLE:
+            raise RuntimeError("Kaleido is not available")
+
+        img_bytes = pio.to_image(
+            fig,
+            format="png",
+            width=600,
+            height=600,
+            scale=1,
+        )
         img_buf = io.BytesIO(img_bytes)
 
-    # Create image without forcing width/height directly
         img = Image(img_buf)
-
-    # Max size we allow on page (must be < frame size)
-        max_width = 14 * cm   # ~5.5"
+        max_width = 14 * cm
         max_height = 14 * cm
-
-    # Let ReportLab shrink it if needed
         img._restrictSize(max_width, max_height)
 
         elems.append(img)
         elems.append(Spacer(1, 0.7*cm))
     except Exception as e:
+        # This is the text you’re currently seeing
         elems.append(Paragraph("Radar chart could not be rendered in this PDF.", body_style))
         elems.append(Spacer(1, 0.7*cm))
+        # Optional: log to Streamlit logs for debugging in the cloud
+        print("PDF chart export error:", repr(e))
 
 
     # --- Per-dimension sections ---
@@ -706,3 +719,4 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
