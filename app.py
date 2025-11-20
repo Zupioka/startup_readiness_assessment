@@ -200,30 +200,67 @@ def build_pdf_report(fig, final_levels, rl_text) -> io.BytesIO:
     elems.append(Spacer(1, 0.5*cm))
 
     # --- Radar chart as image ---
-    try:
-    img_bytes = pio.to_image(
-        fig,
-        format="png",
-        width=600,
-        height=600,
-        scale=1,
+    def build_pdf_report(fig, final_levels, rl_text) -> io.BytesIO:
+    """
+    Build a PDF with:
+    - title
+    - radar chart image
+    - per-dimension level + description
+    Returns a BytesIO ready to pass to st.download_button.
+    """
+    buf = io.BytesIO()
+
+    # --- basic ReportLab doc ---
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=A4,
+        leftMargin=2 * cm,
+        rightMargin=2 * cm,
+        topMargin=2 * cm,
+        bottomMargin=2 * cm,
     )
-    img_buf = io.BytesIO(img_bytes)
+    styles = getSampleStyleSheet()
+    title_style = styles["Title"]
+    title_style.fontName = "Helvetica-Bold"
+    title_style.fontSize = 18
 
-    img = Image(img_buf)
-    max_width = 14 * cm
-    max_height = 14 * cm
-    img._restrictSize(max_width, max_height)
+    heading_style = styles["Heading2"]
+    heading_style.spaceBefore = 12
+    heading_style.spaceAfter = 4
 
-    elems.append(img)
-    elems.append(Spacer(1, 0.7*cm))
-except Exception as e:
-    # if you want, you can now remove the st.error debug
-    elems.append(Paragraph("Radar chart could not be rendered in this PDF.", body_style))
-    elems.append(Spacer(1, 0.7*cm))
+    body_style = styles["BodyText"]
+    body_style.spaceAfter = 6
+
+    elems = []
+
+    # --- Title ---
+    elems.append(Paragraph("Startup Readiness Assessment", title_style))
+    elems.append(Spacer(1, 0.5 * cm))
+
+    # --- Radar chart as image ---
+    try:
+        img_bytes = pio.to_image(
+            fig,
+            format="png",
+            width=600,
+            height=600,
+            scale=1,
+        )
+        img_buf = io.BytesIO(img_bytes)
+
+        img = Image(img_buf)
+        max_width = 14 * cm
+        max_height = 14 * cm
+        img._restrictSize(max_width, max_height)
+
+        elems.append(img)
+        elems.append(Spacer(1, 0.7 * cm))
+    except Exception:
+        # If image export fails, still build the PDF with text only
+        elems.append(Paragraph("Radar chart could not be rendered in this PDF.", body_style))
+        elems.append(Spacer(1, 0.7 * cm))
 
     # --- Per-dimension sections ---
-    # keep same ordering logic as in UI
     order = ["CRL", "SRL", "BRL", "TMRL", "FRL", "IPRL", "TRL"]
     dims_in_order = [d for d in order if d in final_levels] + [
         d for d in final_levels if d not in order
@@ -235,7 +272,6 @@ except Exception as e:
         title = info.get("title", "") or ""
         body = info.get("body", "") or ""
 
-        # section heading: e.g. "CRL 4 – Validated customer need"
         heading_text = f"{dim} {lvl}"
         if title:
             heading_text += f" – {title}"
@@ -243,7 +279,6 @@ except Exception as e:
         elems.append(Paragraph(heading_text, heading_style))
 
         if body:
-            # replace line breaks with <br/> for ReportLab
             body_html = body.replace("\n", "<br/>")
             elems.append(Paragraph(body_html, body_style))
         else:
@@ -708,6 +743,7 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 
 
