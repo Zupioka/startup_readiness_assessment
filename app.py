@@ -16,6 +16,8 @@ try:
 except ImportError:
     KALEIDO_AVAILABLE = False
 
+st.sidebar.write(f"KALEIDO_AVAILABLE = {KALEIDO_AVAILABLE}")
+
 st.set_page_config(page_title="Startup Readiness Assessment", layout="centered")
 st.markdown(
     '<div class="sr-title">🚀 Startup Readiness Assessment</div>',
@@ -226,11 +228,11 @@ def build_pdf_report(fig, final_levels, rl_text) -> io.BytesIO:
         elems.append(img)
         elems.append(Spacer(1, 0.7*cm))
     except Exception as e:
-        # This is the text you’re currently seeing
+        # ⬇️ TEMP: show real error in UI for debugging
+        st.error(f"PDF chart export error: {repr(e)}")
+
         elems.append(Paragraph("Radar chart could not be rendered in this PDF.", body_style))
         elems.append(Spacer(1, 0.7*cm))
-        # Optional: log to Streamlit logs for debugging in the cloud
-        print("PDF chart export error:", repr(e))
 
 
     # --- Per-dimension sections ---
@@ -719,4 +721,5 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
 
