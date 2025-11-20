@@ -199,16 +199,27 @@ def build_pdf_report(fig, final_levels, rl_text) -> io.BytesIO:
     elems.append(Paragraph("Startup Readiness Assessment", title_style))
     elems.append(Spacer(1, 0.5*cm))
 
-    # --- Radar chart as image ---
-    def build_pdf_report(fig, final_levels, rl_text) -> io.BytesIO:
-    """
-    Build a PDF with:
-    - title
-    - radar chart image
-    - per-dimension level + description
-    Returns a BytesIO ready to pass to st.download_button.
-    """
-    buf = io.BytesIO()
+  # Radar chart as image
+    try:
+        img_bytes = pio.to_image(
+            fig,
+            format="png",
+            width=600,
+            height=600,
+            scale=1,
+        )
+        img_buf = io.BytesIO(img_bytes)
+
+        img = Image(img_buf)
+        max_width = 14 * cm
+        max_height = 14 * cm
+        img._restrictSize(max_width, max_height)
+
+        elems.append(img)
+        elems.append(Spacer(1, 0.7 * cm))
+    except Exception:
+        elems.append(Paragraph("Radar chart could not be rendered in this PDF.", body_style))
+        elems.append(Spacer(1, 0.7 * cm))
 
     # --- basic ReportLab doc ---
     doc = SimpleDocTemplate(
@@ -743,6 +754,7 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 
 
