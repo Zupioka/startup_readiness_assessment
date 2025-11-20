@@ -1,0 +1,12 @@
+[theme]
+base = "light"
+primaryColor="#DCD0A8"
+backgroundColor="#004030"
+secondaryBackgroundColor="#0A5A4A"
+textColor="#FFF9E5"
+font="sans serif"
+
+
+[server]
+address = "127.0.0.1"
+fileWatcherType = "poll"
